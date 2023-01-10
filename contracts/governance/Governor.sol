@@ -25,13 +25,13 @@ import "./IGovernor.sol";
  */
 abstract contract Governor is Context, ERC165, EIP712, IGovernor {
     using SafeCast for uint256;
-    using Timers for Timers.BlockNumber;
+    using Timers for Timers.Timestamp;
 
     bytes32 public constant BALLOT_TYPEHASH = keccak256("Ballot(uint256 proposalId,uint8 support)");
 
     struct ProposalCore {
-        Timers.BlockNumber voteStart;
-        Timers.BlockNumber voteEnd;
+        Timers.Timestamp voteStart;
+        Timers.Timestamp voteEnd;
         bool executed;
         bool canceled;
     }
@@ -127,13 +127,13 @@ abstract contract Governor is Context, ERC165, EIP712, IGovernor {
             revert("Governor: unknown proposal id");
         }
 
-        if (snapshot >= block.number) {
+        if (snapshot >= block.timestamp) {
             return ProposalState.Pending;
         }
 
         uint256 deadline = proposalDeadline(proposalId);
 
-        if (deadline >= block.number) {
+        if (deadline >= block.timestamp) {
             return ProposalState.Active;
         }
 
@@ -197,7 +197,7 @@ abstract contract Governor is Context, ERC165, EIP712, IGovernor {
         string memory description
     ) public virtual override returns (uint256) {
         require(
-            getVotes(msg.sender, block.number - 1) >= proposalThreshold(),
+            getVotes(msg.sender, block.timestamp - 1) >= proposalThreshold(),
             "GovernorCompatibilityBravo: proposer votes below proposal threshold"
         );
 
@@ -210,7 +210,7 @@ abstract contract Governor is Context, ERC165, EIP712, IGovernor {
         ProposalCore storage proposal = _proposals[proposalId];
         require(proposal.voteStart.isUnset(), "Governor: proposal already exists");
 
-        uint64 snapshot = block.number.toUint64() + votingDelay().toUint64();
+        uint64 snapshot = block.timestamp.toUint64() + votingDelay().toUint64();
         uint64 deadline = snapshot + votingPeriod().toUint64();
 
         proposal.voteStart.setDeadline(snapshot);
